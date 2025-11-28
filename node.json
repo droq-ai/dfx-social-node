@@ -16,6 +16,11 @@
       "path": "dfx.components.example",
       "description": "This is a sample droq component",
       "author": "Droq Team"
+    },
+    "social/telegram/message": {
+      "path": "social.telegram.message",
+      "description": "Statelessly send a plain text message to a Telegram chat via Bot API with caller-supplied bot token",
+      "author": "Droq Team"
     }
   }
 }
