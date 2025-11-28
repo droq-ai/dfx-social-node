@@ -31,11 +31,10 @@ except ImportError:
 
 # Optional: Import Telegram integration
 try:
-    from social.telegram.client import TelegramClient
-    from social.telegram.handler import TelegramMessageHandler
+    from social.telegram.message import send_message, get_bot_info
 except ImportError:
-    TelegramClient = None
-    TelegramMessageHandler = None
+    send_message = None
+    get_bot_info = None
 
 
 # Global flag for graceful shutdown
@@ -58,10 +57,10 @@ async def handle_telegram_message(data: dict, headers: dict):
     try:
         result = None
 
-        if "send_message" in subject:
-            result = await telegram_handler.handle_send_message(data)
-        elif "get_bot_info" in subject:
-            result = await telegram_handler.handle_get_bot_info(data)
+        if "send_message" in subject and send_message:
+            result = await send_message(data)
+        elif "get_bot_info" in subject and get_bot_info:
+            result = await get_bot_info(data)
         else:
             result = {"success": False, "error": "Unknown Telegram operation"}
 
@@ -107,7 +106,6 @@ async def run_node():
     # Initialize clients
     nats_client = None
     http_client = None
-    telegram_handler = None
 
     try:
         # Example 1: Connect to NATS JetStream
@@ -134,11 +132,11 @@ async def run_node():
                 logger.info(f"Received message: {data}")
 
                 # Handle Telegram messages
-                if telegram_handler and isinstance(data, dict):
+                if isinstance(data, dict):
                     await handle_telegram_message(data, headers)
 
             # Subscribe to Telegram message subjects (runs in background)
-            if telegram_handler:
+            if send_message or get_bot_info:
                 asyncio.create_task(
                     nats_client.subscribe("telegram.send_message", handle_message, queue="telegram-queue")
                 )
@@ -153,16 +151,14 @@ async def run_node():
             #     {"message": "Hello from node", "timestamp": "2024-01-01T00:00:00Z"}
             # )
 
-        # Example 2: Use HTTP client and initialize Telegram
+        # Example 2: Use HTTP client
         if HTTPClient:
             http_client = HTTPClient()
             logger.info("HTTP client initialized")
 
-            # Initialize Telegram client and handler
-            if TelegramClient and TelegramMessageHandler:
-                telegram_client = TelegramClient(http_client)
-                telegram_handler = TelegramMessageHandler(telegram_client)
-                logger.info("Telegram client and handler initialized")
+            # Telegram functions are available if the social module is present
+            if send_message and get_bot_info:
+                logger.info("Telegram message functions available")
 
         # Main processing loop
         while not shutdown_event.is_set():
