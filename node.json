@@ -5,70 +5,17 @@
   "description": "A DFX node template with social media integration capabilities, featuring Telegram Bot API integration for message sending and bot management.",
   "author": "Droq Team",
   "api_url": "http://localhost:8003",
-  "created_at": "2025-11-28T00:00:00Z",
-  "updated_at": "2025-11-28T14:30:00Z",
+  "created_at": "2025-11-28T14:30:00Z",
   "ip_address": "127.0.0.1",
   "status": "active",
   "docker_image": "droqai/dfx-social-node:latest",
   "deployment_location": "local",
   "source_code_location": "https://github.com/droq-ai/dfx-social-node-py",
-  "tags": ["social", "telegram", "messaging", "bot-api", "nats", "async"],
-  "capabilities": [
-    "NATS JetStream messaging",
-    "Telegram Bot API integration",
-    "Asynchronous message processing",
-    "Social media automation"
-  ],
   "components": {
     "social/telegram/message": {
       "path": "social.telegram.message",
       "description": "Statelessly send plain text messages to Telegram chats via Bot API. Supports caller-supplied bot tokens, text formatting (Markdown/HTML), and optional parameters like web preview control and silent notifications.",
-      "author": "Droq Team",
-      "version": "0.1.0",
-      "inputs": {
-        "bot_token": "string (required) - Telegram bot authentication token",
-        "chat_id": "string (required) - Target chat ID or username",
-        "text": "string (required) - Message text content",
-        "parse_mode": "string (optional) - 'Markdown' or 'HTML' formatting",
-        "disable_web_page_preview": "boolean (optional) - Disable link preview",
-        "disable_notification": "boolean (optional) - Send message silently"
-      },
-      "outputs": {
-        "success": "boolean - Operation success status",
-        "result": "object - Telegram API response data on success",
-        "error": "string - Error message on failure",
-        "error_code": "integer - Telegram API error code if applicable"
-      },
-      "endpoints": [
-        "telegram.send_message - Send messages to Telegram chats",
-        "telegram.get_bot_info - Retrieve bot information"
-      ]
-    }
-  },
-  "dependencies": {
-    "messaging": "NATS Server with JetStream",
-    "external_apis": "Telegram Bot API",
-    "runtime": "Python 3.11+"
-  },
-  "configuration": {
-    "required": [],
-    "optional": ["LOG_LEVEL", "NODE_NAME"],
-    "examples": {
-      "send_message": {
-        "nats_subject": "telegram.send_message",
-        "payload": {
-          "bot_token": "123456789:ABCdefGHIjklMNOpqrsTUVwxyz",
-          "chat_id": "123456789",
-          "text": "Hello from DFX Social Node!",
-          "parse_mode": "Markdown"
-        }
-      },
-      "get_bot_info": {
-        "nats_subject": "telegram.get_bot_info",
-        "payload": {
-          "bot_token": "123456789:ABCdefGHIjklMNOpqrsTUVwxyz"
-        }
-      }
+      "author": "Droq Team"
     }
   }
 }
