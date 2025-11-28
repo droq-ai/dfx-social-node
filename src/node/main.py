@@ -29,9 +29,56 @@ try:
 except ImportError:
     HTTPClient = None
 
+# Optional: Import Telegram integration
+try:
+    from social.telegram.client import TelegramClient
+    from social.telegram.handler import TelegramMessageHandler
+except ImportError:
+    TelegramClient = None
+    TelegramMessageHandler = None
+
 
 # Global flag for graceful shutdown
 shutdown_event = asyncio.Event()
+
+
+async def handle_telegram_message(data: dict, headers: dict):
+    """Handle Telegram-specific messages from NATS.
+
+    Args:
+        data: Message data containing Telegram request
+        headers: Message headers
+    """
+    logger = logging.getLogger(__name__)
+
+    # Get the subject from headers or infer from data
+    subject = headers.get("subject", "")
+    response_subject = headers.get("reply", "")
+
+    try:
+        result = None
+
+        if "send_message" in subject:
+            result = await telegram_handler.handle_send_message(data)
+        elif "get_bot_info" in subject:
+            result = await telegram_handler.handle_get_bot_info(data)
+        else:
+            result = {"success": False, "error": "Unknown Telegram operation"}
+
+        # Send response if reply subject is provided
+        if response_subject and nats_client:
+            await nats_client.publish(response_subject, result)
+            logger.debug(f"Sent Telegram response to {response_subject}")
+
+    except Exception as e:
+        logger.error(f"Error handling Telegram message: {e}", exc_info=True)
+        # Send error response if possible
+        if response_subject and nats_client:
+            error_response = {
+                "success": False,
+                "error": f"Internal error: {e}"
+            }
+            await nats_client.publish(response_subject, error_response)
 
 
 def signal_handler(signum, frame):
@@ -60,6 +107,7 @@ async def run_node():
     # Initialize clients
     nats_client = None
     http_client = None
+    telegram_handler = None
 
     try:
         # Example 1: Connect to NATS JetStream
@@ -80,11 +128,24 @@ async def run_node():
                 logger.info(f"Received message: {data}")
                 # Process your message here
 
-            # Subscribe to a subject (runs in background)
-            # Uncomment to enable:
-            # asyncio.create_task(
-            #     nats_client.subscribe("input", handle_message, queue="node-queue")
-            # )
+            # Example: Subscribe to messages
+            async def handle_message(data: dict, headers: dict):
+                """Handle incoming NATS messages."""
+                logger.info(f"Received message: {data}")
+
+                # Handle Telegram messages
+                if telegram_handler and isinstance(data, dict):
+                    await handle_telegram_message(data, headers)
+
+            # Subscribe to Telegram message subjects (runs in background)
+            if telegram_handler:
+                asyncio.create_task(
+                    nats_client.subscribe("telegram.send_message", handle_message, queue="telegram-queue")
+                )
+                asyncio.create_task(
+                    nats_client.subscribe("telegram.get_bot_info", handle_message, queue="telegram-queue")
+                )
+                logger.info("Subscribed to Telegram message subjects")
 
             # Example: Publish a message
             # await nats_client.publish(
@@ -92,19 +153,16 @@ async def run_node():
             #     {"message": "Hello from node", "timestamp": "2024-01-01T00:00:00Z"}
             # )
 
-        # Example 2: Use HTTP client
+        # Example 2: Use HTTP client and initialize Telegram
         if HTTPClient:
-            async with HTTPClient():
-                # Example: Make GET request
-                # response = await http.get("/api/endpoint")
-                # logger.info(f"API response: {response}")
+            http_client = HTTPClient()
+            logger.info("HTTP client initialized")
 
-                # Example: Make POST request
-                # response = await http.post(
-                #     "/api/endpoint",
-                #     json_data={"key": "value"}
-                # )
-                pass
+            # Initialize Telegram client and handler
+            if TelegramClient and TelegramMessageHandler:
+                telegram_client = TelegramClient(http_client)
+                telegram_handler = TelegramMessageHandler(telegram_client)
+                logger.info("Telegram client and handler initialized")
 
         # Main processing loop
         while not shutdown_event.is_set():
