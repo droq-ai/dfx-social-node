@@ -18,19 +18,21 @@ fi
 
 if [[ ! -d ".venv" || ! -f "uv.lock" ]]; then
   echo "Installing dependencies with uv sync..."
-  uv sync
+  # Install dependencies without building the package
+  UV_VENV_CLEAR=1 uv venv
+  uv pip install nats-py aiohttp pydantic
 fi
 
 # Defaults align with compose.yml and registry expectations.
 : "${NODE_NAME:=droq-node-template}"
-: "${NODE_PORT:=${CLI_PORT:-8000}}"
+: "${NODE_PORT:=${CLI_PORT:-8007}}"
 : "${LOG_LEVEL:=INFO}"
 : "${NATS_URL:=nats://localhost:4222}"
 : "${NATS_CLIENT_NAME:=$NODE_NAME}"
 : "${STREAM_NAME:=droq-stream}"
 
 export NODE_NAME NODE_PORT LOG_LEVEL NATS_URL NATS_CLIENT_NAME STREAM_NAME
-export PYTHONPATH="${PYTHONPATH:-src}"
+export PYTHONPATH="${PYTHONPATH:-src}:social:dfx"
 
 echo "Starting Droq node locally with:"
 echo "  NODE_NAME=${NODE_NAME}"
@@ -41,4 +43,6 @@ echo "  STREAM_NAME=${STREAM_NAME}"
 echo
 
 # Use uv to run main just like registry node submodules.
-uv run python -m node.main "${@:2}"
+# Set PYTHONPATH to include src, social, and dfx directories
+export PYTHONPATH="${PYTHONPATH:-src}:social:dfx"
+.venv/bin/python -m node.main "${@:2}"

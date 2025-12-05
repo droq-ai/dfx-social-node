@@ -2,9 +2,9 @@
   "version": "0.1.0",
   "node_id": "dfx-social-node-py",
   "name": "DFX Social Node",
-  "description": "A DFX node template with social media integration capabilities, featuring Telegram Bot API integration for message sending and bot management.",
+  "description": "A DFX social node with Telegram Bot API integration for message sending and bot management. Provides components for sending text messages with formatting options, chat management, and bot information retrieval.",
   "author": "Droq Team",
-  "api_url": "http://localhost:8003",
+  "api_url": "http://localhost:8007",
   "created_at": "2025-11-28T14:30:00Z",
   "ip_address": "127.0.0.1",
   "status": "active",
@@ -12,9 +12,9 @@
   "deployment_location": "local",
   "source_code_location": "https://github.com/droq-ai/dfx-social-node-py",
   "components": {
-    "social/telegram/message": {
-      "path": "social.telegram.message",
-      "description": "Statelessly send plain text messages to Telegram chats via Bot API. Supports caller-supplied bot tokens, text formatting (Markdown/HTML), and optional parameters like web preview control and silent notifications.",
+    "TelegramMessageComponent": {
+      "path": "dfx.social.telegram.telegram_message",
+      "description": "Send messages to Telegram chats via Bot API with comprehensive configuration options including text formatting (Markdown/HTML), web preview control, and silent notifications.",
       "author": "Droq Team"
     }
   }

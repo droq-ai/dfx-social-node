@@ -1,5 +1,5 @@
 [project]
-name = "droq-node-template"
+name = "droq-social-node"
 version = "0.1.0"
 description = "A Python template for building Droq nodes"
 readme = "README.md"
@@ -22,6 +22,7 @@ keywords = ["droq", "node", "template", "workflow"]
 dependencies = [
     "nats-py>=2.3.0",      # For NATS messaging and JetStream
     "aiohttp>=3.8.0",      # For HTTP/API calls
+    "pydantic>=2.0.0",     # For configuration validation
 ]
 
 [project.optional-dependencies]
@@ -34,14 +35,14 @@ dev = [
 ]
 
 [project.scripts]
-node = "node.main:main"
+droq-social-node = "node.main:main"
 
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [tool.hatchling.build.targets.wheel]
-packages = ["src/node", "social"]
+only-include = ["src", "social", "dfx"]
 
 [tool.black]
 line-length = 100
