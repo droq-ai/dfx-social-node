@@ -1,48 +1,33 @@
-#!/usr/bin/env bash
-set -euo pipefail
+#!/bin/bash
+# Start the DFX Social Executor Node locally
 
-# Optional first arg overrides NODE_PORT to match registry submodule scripts.
-CLI_PORT="${1:-}"
+set -e
 
-# Ensure we are at the project root where the node entrypoint and pyproject live.
-if [[ ! -f "pyproject.toml" || ! -f "src/node/main.py" ]]; then
-  echo "Run this script from the repository root (pyproject.toml and src/node/main.py not found)." >&2
-  exit 1
+PORT=${1:-8007}
+
+echo "🚀 Starting DFX Social Executor Node on port $PORT..."
+
+# Check if uv is available
+if ! command -v uv &> /dev/null; then
+    echo "❌ Error: uv is not installed. Please install it first:"
+    echo "   curl -LsSf https://astral.sh/uv/install.sh | sh"
+    exit 1
 fi
 
-# Align with registry submodules: require uv and install deps if lock/venv missing.
-if ! command -v uv >/dev/null 2>&1; then
-  echo "uv is required to run the node locally. Install uv: https://docs.astral.sh/uv/." >&2
-  exit 1
+# Create/activate virtual environment if it doesn't exist
+if [ ! -d ".venv" ]; then
+    echo "📦 Creating virtual environment..."
+    uv venv
 fi
 
-if [[ ! -d ".venv" || ! -f "uv.lock" ]]; then
-  echo "Installing dependencies with uv sync..."
-  # Install dependencies without building the package
-  UV_VENV_CLEAR=1 uv venv
-  uv pip install nats-py aiohttp pydantic
-fi
+# Install dependencies
+echo "📦 Installing dependencies..."
+uv pip install --python .venv/bin/python nats-py aiohttp pydantic fastapi uvicorn[standard] httpx python-dotenv
 
-# Defaults align with compose.yml and registry expectations.
-: "${NODE_NAME:=droq-node-template}"
-: "${NODE_PORT:=${CLI_PORT:-8007}}"
-: "${LOG_LEVEL:=INFO}"
-: "${NATS_URL:=nats://localhost:4222}"
-: "${NATS_CLIENT_NAME:=$NODE_NAME}"
-: "${STREAM_NAME:=droq-stream}"
+# Set PYTHONPATH to include src and dfx directories
+export PYTHONPATH="${PYTHONPATH:-$(pwd)/src:$(pwd)/dfx}"
 
-export NODE_NAME NODE_PORT LOG_LEVEL NATS_URL NATS_CLIENT_NAME STREAM_NAME
-export PYTHONPATH="${PYTHONPATH:-src}:social:dfx"
+# Run the service directly
+export NODE_PORT=$PORT
+.venv/bin/python -m node.main "$PORT"
 
-echo "Starting Droq node locally with:"
-echo "  NODE_NAME=${NODE_NAME}"
-echo "  NODE_PORT=${NODE_PORT}"
-echo "  LOG_LEVEL=${LOG_LEVEL}"
-echo "  NATS_URL=${NATS_URL}"
-echo "  STREAM_NAME=${STREAM_NAME}"
-echo
-
-# Use uv to run main just like registry node submodules.
-# Set PYTHONPATH to include src, social, and dfx directories
-export PYTHONPATH="${PYTHONPATH:-src}:social:dfx"
-.venv/bin/python -m node.main "${@:2}"
