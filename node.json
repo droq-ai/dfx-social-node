@@ -1,7 +1,7 @@
 {
   "version": "0.1.0",
-  "node_id": "dfx-social-node-py",
-  "name": "DFX Social Node",
+  "node_id": "dfx-social-executor-node",
+  "name": "DFX Social Executor Node",
   "description": "A DFX social node with Telegram Bot API integration for message sending and bot management. Provides components for sending text messages with formatting options, chat management, and bot information retrieval.",
   "author": "Droq Team",
   "api_url": "http://localhost:8007",

@@ -81,3 +81,5 @@ AGENT_GUIDE.md
 CLAUDE.md
 openspec/
 test_venv/
+.env.test
+component-structure.md
