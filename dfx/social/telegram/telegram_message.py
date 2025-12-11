@@ -155,6 +155,40 @@ class DFXTelegramMessageComponent(Component):
         )
     ]
 
+    def __init__(self, **kwargs):
+        """Initialize component with parameter mapping for compatibility."""
+        # Map application parameter names to component parameter names
+        param_mapping = {
+            'message_text': 'text',
+            'disable_preview': 'disable_web_page_preview',
+            'silent': 'disable_notification'
+        }
+
+        # Apply parameter mapping
+        mapped_kwargs = {}
+        for key, value in kwargs.items():
+            if key in param_mapping:
+                mapped_kwargs[param_mapping[key]] = value
+            else:
+                mapped_kwargs[key] = value
+
+        # Handle boolean conversion for strings
+        for bool_field in ['disable_web_page_preview', 'disable_notification']:
+            if bool_field in mapped_kwargs:
+                val = mapped_kwargs[bool_field]
+                if isinstance(val, bool):
+                    continue
+                if isinstance(val, str):
+                    mapped_kwargs[bool_field] = val.lower() in ['true', '1', 'yes']
+                else:
+                    mapped_kwargs[bool_field] = bool(val)
+
+        # Parse mode handling - convert "None" to empty string
+        if 'parse_mode' in mapped_kwargs and mapped_kwargs['parse_mode'] == 'None':
+            mapped_kwargs['parse_mode'] = ''
+
+        super().__init__(**mapped_kwargs)
+
     def _validate_inputs(self) -> Dict[str, Any]:
         """Validate required inputs and return parsed data."""
         errors = []

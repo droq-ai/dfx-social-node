@@ -2,4 +2,7 @@
 
 from .telegram_message import DFXTelegramMessageComponent
 
-__all__ = ["DFXTelegramMessageComponent"]
+# Alias for backward compatibility
+DFXTelegramComponent = DFXTelegramMessageComponent
+
+__all__ = ["DFXTelegramMessageComponent", "DFXTelegramComponent"]

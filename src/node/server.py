@@ -1,13 +1,84 @@
 """HTTP server for handling incoming requests to the DFX Social Executor Node."""
 
+import json
 import logging
+import os
 import ssl
+import sys
 from typing import Any
 
 import aiohttp.web
 from aiohttp import web
 
 logger = logging.getLogger(__name__)
+
+# Node configuration cache
+_node_config = None
+
+
+def load_node_config():
+    """Load node configuration from node.json."""
+    global _node_config
+    if _node_config is None:
+        try:
+            node_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+            node_config_path = os.path.join(node_dir, "node.json")
+            logger.info(f"Loading node configuration from {node_config_path}")
+            with open(node_config_path, "r") as f:
+                _node_config = json.load(f)
+            logger.info(f"✅ Node configuration loaded: {_node_config.get('node_id')}")
+        except Exception as e:
+            logger.error(f"❌ Failed to load node configuration: {e}")
+            _node_config = {"components": {}}
+    return _node_config
+
+
+async def load_component_by_class_name(component_class_name: str) -> type:
+    """Load component class by name using node.json configuration.
+
+    Args:
+        component_class_name: Name of the component class to load
+
+    Returns:
+        Component class type
+
+    Raises:
+        ValueError: If component cannot be loaded
+    """
+    import importlib
+
+    node_config = load_node_config()
+    components = node_config.get("components", {})
+
+    # Find component by class name in node.json
+    component_info = None
+    for name, info in components.items():
+        if name == component_class_name:
+            component_info = info
+            break
+
+    if not component_info:
+        raise ValueError(f"Component '{component_class_name}' not found in node.json configuration")
+
+    module_path = component_info.get("path")
+    if not module_path:
+        raise ValueError(f"No module path specified for component '{component_class_name}'")
+
+    # Ensure dfx is in the path for imports
+    node_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    if node_dir not in sys.path:
+        sys.path.insert(0, node_dir)
+
+    logger.info(f"Loading component {component_class_name} from module {module_path}")
+
+    try:
+        module = importlib.import_module(module_path)
+        component_class_obj = getattr(module, component_class_name)
+        logger.info(f"✅ Loaded {component_class_name} from module {module_path}")
+        return component_class_obj
+    except Exception as e:
+        logger.error(f"Failed to load {component_class_name}: {e}")
+        raise ValueError(f"Failed to load component '{component_class_name}': {e}")
 
 
 class HTTPServer:
@@ -67,61 +138,123 @@ class HTTPServer:
         })
 
     async def _handle_status(self, request: web.Request) -> web.Response:
-        """Handle status endpoint."""
+        """Handle status endpoint using component-based approach."""
         try:
-            # Try to import and check if Telegram functions are available
-            from social.telegram.message import send_message, get_bot_info
+            # Try to load DFX Telegram component using node.json
+            component_class = await load_component_by_class_name("DFXTelegramMessageComponent")
+
+            # Check available methods
+            has_send_message = hasattr(component_class, 'send_message')
+            has_get_bot_info = hasattr(component_class, 'get_bot_info')
 
             return web.json_response({
                 "status": "running",
                 "telegram_enabled": True,
+                "telegram_component": "DFXTelegramMessageComponent",
                 "telegram_functions": {
-                    "send_message": send_message is not None,
-                    "get_bot_info": get_bot_info is not None
-                }
+                    "send_message": has_send_message,
+                    "get_bot_info": has_get_bot_info
+                },
+                "component_loading": "node_json_based"
             })
-        except ImportError:
+        except Exception as e:
+            logger.warning(f"Could not load DFX Telegram component: {e}")
             return web.json_response({
                 "status": "running",
                 "telegram_enabled": False,
+                "telegram_component": None,
                 "telegram_functions": {
                     "send_message": False,
                     "get_bot_info": False
-                }
+                },
+                "component_loading": "failed",
+                "error": str(e)
             })
 
     async def _handle_telegram_send(self, request: web.Request) -> web.Response:
-        """Handle Telegram send message endpoint."""
+        """Handle Telegram send message endpoint using component-based approach."""
         try:
-            from social.telegram.message import send_message
-            if not send_message:
-                raise ImportError("send_message function not available")
-
             data = await request.json()
-            result = await send_message(data)
-            return web.json_response(result)
+
+            # Try to use DFX Telegram component via node.json
+            component_class = await load_component_by_class_name("DFXTelegramMessageComponent")
+
+            # Extract parameters from request data
+            bot_token = data.get("bot_token")
+            chat_id = data.get("chat_id")
+            message_text = data.get("message_text", data.get("text", ""))
+            parse_mode = data.get("parse_mode", "")
+            disable_preview = data.get("disable_preview", False)
+            silent = data.get("silent", False)
+
+            # Instantiate the component
+            component = component_class(
+                bot_token=bot_token,
+                chat_id=chat_id,
+                text=message_text[:4096],  # Truncate to Telegram limit
+                parse_mode=parse_mode if parse_mode != "None" else "",
+                disable_web_page_preview="True" if disable_preview else "False",
+                disable_notification="True" if silent else "False"
+            )
+
+            # Execute the component's send_message method
+            result = await component.send_message()
+
+            # Extract data from the Data object
+            if hasattr(result, 'data'):
+                result_data = result.data
+            else:
+                result_data = result
+
+            return web.json_response(result_data)
+
         except Exception as e:
             logger.error(f"Error handling Telegram send request: {e}")
             return web.json_response({
                 "success": False,
-                "error": str(e)
+                "error": str(e),
+                "operation": "send_telegram_message"
             }, status=500)
 
     async def _handle_telegram_bot_info(self, request: web.Request) -> web.Response:
-        """Handle Telegram bot info endpoint."""
+        """Handle Telegram bot info endpoint using component-based approach."""
         try:
-            from social.telegram.message import get_bot_info
-            if not get_bot_info:
-                raise ImportError("get_bot_info function not available")
-
             data = await request.json() if request.can_read_body else {}
-            result = await get_bot_info(data)
-            return web.json_response(result)
+
+            # Try to use DFX Telegram component via node.json
+            component_class = await load_component_by_class_name("DFXTelegramMessageComponent")
+
+            # Check if the component has get_bot_info method
+            if hasattr(component_class, 'get_bot_info'):
+                bot_token = data.get("bot_token")
+
+                # Instantiate the component
+                component = component_class(bot_token=bot_token)
+
+                # Execute the component's get_bot_info method
+                result = await component.get_bot_info()
+
+                # Extract data from the Data object
+                if hasattr(result, 'data'):
+                    result_data = result.data
+                else:
+                    result_data = result
+
+                return web.json_response(result_data)
+            else:
+                # Component doesn't have get_bot_info method
+                return web.json_response({
+                    "success": False,
+                    "error": "DFXTelegramMessageComponent does not have get_bot_info method",
+                    "operation": "get_telegram_bot_info"
+                }, status=501)  # Not Implemented
+
         except Exception as e:
             logger.error(f"Error handling Telegram bot info request: {e}")
             return web.json_response({
                 "success": False,
-                "error": str(e)
+                "error": str(e),
+                "operation": "get_telegram_bot_info"
             }, status=500)
 
     async def start(self) -> None:
