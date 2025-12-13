@@ -4,15 +4,12 @@ import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
 import aiohttp
 
-from social.telegram.message import (
-    SendMessageOperation,
-    GetBotInfoOperation,
-    TelegramOperations,
-    send_message,
-    get_bot_info,
-    execute_telegram_operation
+from dfx.social.telegram.telegram_message import (
+    DFXTelegramMessageComponent,
+    TelegramAPI,
+    TelegramAPIError,
+    TelegramHTTPError
 )
-from social.telegram.base import TelegramAPI, TelegramAPIError
 
 
 class TestSendMessageOperation:

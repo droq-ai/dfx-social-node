@@ -89,8 +89,9 @@ class TestTelegramIntegration:
         data = response.json()
         assert data["service"] == "dfx-social-executor-node"
         assert data["version"] == "0.1.0"
-        assert "api/v1/telegram/send" in data["endpoints"]
-        assert "api/v1/telegram/bot-info" in data["endpoints"]
+        assert "api/v1/execute" in data["endpoints"]
+        assert "health" in data["endpoints"]
+        assert "/" in data["endpoints"]
         logger.info("✅ Root endpoint test passed")
 
     @pytest.mark.asyncio
@@ -139,7 +140,7 @@ class TestTelegramIntegration:
         payload = {
             "bot_token": self.bot_token,
             "chat_id": self.chat_id,
-            "message_text": test_message,
+            "text": test_message,
             "parse_mode": "HTML",
             "disable_preview": False,
             "silent": False
@@ -184,7 +185,7 @@ class TestTelegramIntegration:
         payload = {
             "bot_token": self.bot_token,
             "chat_id": self.chat_id,
-            "message_text": self.test_messages["html_formatted"],
+            "text": self.test_messages["html_formatted"],
             "parse_mode": "HTML",
             "disable_preview": False,
             "silent": True
@@ -212,7 +213,7 @@ class TestTelegramIntegration:
         payload = {
             "bot_token": self.bot_token,
             "chat_id": self.chat_id,
-            "message_text": self.test_messages["markdown_v2"],
+            "text": self.test_messages["markdown_v2"],
             "parse_mode": "MarkdownV2",
             "disable_preview": True,
             "silent": True
@@ -240,7 +241,7 @@ class TestTelegramIntegration:
         payload = {
             "bot_token": self.bot_token,
             "chat_id": self.chat_id,
-            "message_text": self.test_messages["with_emoji"],
+            "text": self.test_messages["with_emoji"],
             "parse_mode": "None",
             "disable_preview": False,
             "silent": True
@@ -270,7 +271,7 @@ class TestTelegramIntegration:
         payload = {
             "bot_token": self.bot_token,
             "chat_id": self.chat_id,
-            "message_text": long_message,
+            "text": long_message,
             "parse_mode": "None",
             "disable_preview": False,
             "silent": True
@@ -303,7 +304,7 @@ class TestTelegramIntegration:
         payload = {
             "bot_token": "invalid_token_12345",
             "chat_id": self.chat_id,
-            "message_text": "This should fail with invalid token",
+            "text": "This should fail with invalid token",
             "parse_mode": "None",
             "disable_preview": False,
             "silent": False
@@ -334,7 +335,7 @@ class TestTelegramIntegration:
         payload = {
             "bot_token": "",
             "chat_id": self.chat_id,
-            "message_text": "This should fail with empty token",
+            "text": "This should fail with empty token",
             "parse_mode": "None",
             "disable_preview": False,
             "silent": False
@@ -361,7 +362,7 @@ class TestTelegramIntegration:
         payload = {
             "bot_token": self.bot_token,
             "chat_id": self.test_chat_ids["invalid"],
-            "message_text": "This should fail with invalid chat ID",
+            "text": "This should fail with invalid chat ID",
             "parse_mode": "None",
             "disable_preview": False,
             "silent": False
@@ -389,7 +390,7 @@ class TestTelegramIntegration:
         payload = {
             "bot_token": self.bot_token,
             "chat_id": self.test_chat_ids["nonexistent"],
-            "message_text": "This should fail with nonexistent chat ID",
+            "text": "This should fail with nonexistent chat ID",
             "parse_mode": "None",
             "disable_preview": False,
             "silent": False
@@ -417,7 +418,7 @@ class TestTelegramIntegration:
         payload = {
             "bot_token": self.bot_token,
             "chat_id": self.chat_id,
-            "message_text": "",
+            "text": "",
             "parse_mode": "None",
             "disable_preview": False,
             "silent": False
@@ -442,7 +443,7 @@ class TestTelegramIntegration:
         # Test missing bot_token
         payload = {
             "chat_id": self.chat_id,
-            "message_text": "Test message",
+            "text": "Test message",
             "parse_mode": "None",
             "disable_preview": False,
             "silent": False
@@ -461,7 +462,7 @@ class TestTelegramIntegration:
         # Test missing chat_id
         payload = {
             "bot_token": self.bot_token,
-            "message_text": "Test message",
+            "text": "Test message",
             "parse_mode": "None",
             "disable_preview": False,
             "silent": False
@@ -502,7 +503,7 @@ class TestTelegramIntegration:
         payload = {
             "bot_token": self.bot_token,
             "chat_id": self.chat_id,
-            "message_text": "Test message",
+            "text": "Test message",
             "parse_mode": "InvalidMode",
             "disable_preview": False,
             "silent": False
@@ -524,7 +525,7 @@ class TestTelegramIntegration:
     @pytest.mark.asyncio
     async def test_error_handling_malformed_json(self):
         """Test error handling with malformed JSON (should be handled by FastAPI)."""
-        malformed_payload = '{ "bot_token": "test", "chat_id": 123, "message_text": }'
+        malformed_payload = '{ "bot_token": "test", "chat_id": 123, "text": }'
 
         async with httpx.AsyncClient() as client:
             response = await client.post(
@@ -559,7 +560,7 @@ class TestTelegramIntegration:
         payload = {
             "component_state": {
                 "component_class": "DFXTelegramMessageComponent",
-                "component_module": "",
+                "component_module": "dfx.social.telegram.telegram_message",
                 "component_code": None,
                 "parameters": {
                     "bot_token": self.bot_token,

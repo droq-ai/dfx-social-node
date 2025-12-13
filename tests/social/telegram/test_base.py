@@ -4,7 +4,7 @@ import pytest
 from unittest.mock import AsyncMock, MagicMock
 import aiohttp
 
-from social.telegram.base import TelegramAPI, TelegramAPIError, TelegramHTTPError
+from dfx.social.telegram.telegram_message import TelegramAPI, TelegramAPIError, TelegramHTTPError
 
 
 class TestTelegramAPI:

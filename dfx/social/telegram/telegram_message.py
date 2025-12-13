@@ -126,7 +126,7 @@ class DFXTelegramMessageComponent(Component):
         StrInput(
             name="parse_mode",
             display_name="Parse Mode",
-            info="Text formatting: 'Markdown' or 'HTML'",
+            info="Text formatting: 'Markdown', 'MarkdownV2', or 'HTML'",
             value="",
             required=False
         ),
@@ -207,16 +207,12 @@ class DFXTelegramMessageComponent(Component):
         if self.text and len(self.text) > 4096:
             errors.append("text exceeds maximum length of 4096 characters")
 
-        # Validate parse_mode
-        if self.parse_mode and self.parse_mode not in ["Markdown", "HTML", ""]:
-            errors.append("parse_mode must be 'Markdown', 'HTML', or empty")
+        # Validate parse_mode - Telegram API supports: Markdown, MarkdownV2, HTML
+        if self.parse_mode and self.parse_mode not in ["Markdown", "MarkdownV2", "HTML", ""]:
+            errors.append("parse_mode must be 'Markdown', 'MarkdownV2', 'HTML', or empty")
 
-        # Validate boolean fields
-        boolean_fields = ["disable_web_page_preview", "disable_notification"]
-        for field in boolean_fields:
-            value = getattr(self, field)
-            if value and value.lower() not in ["true", "false", ""]:
-                errors.append(f"{field} must be 'True', 'False', or empty")
+        # Validate boolean fields (already converted to bool in __init__)
+        # No validation needed since conversion happens in __init__
 
         if errors:
             return {"valid": False, "errors": errors}

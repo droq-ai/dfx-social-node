@@ -47,7 +47,7 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [tool.hatchling.build.targets.wheel]
-only-include = ["src", "dfx"]
+packages = ["src/node", "dfx"]
 
 [tool.black]
 line-length = 100
