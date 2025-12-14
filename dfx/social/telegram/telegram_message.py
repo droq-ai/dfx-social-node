@@ -219,11 +219,15 @@ class DFXTelegramMessageComponent(Component):
 
         return {"valid": True}
 
-    def _parse_boolean(self, value: str) -> bool:
-        """Parse string value to boolean."""
+    def _parse_boolean(self, value) -> bool:
+        """Parse string or boolean value to boolean."""
         if not value:
             return False
-        return value.lower() in ["true", "1", "yes"]
+        if isinstance(value, bool):
+            return value
+        if isinstance(value, str):
+            return value.lower() in ["true", "1", "yes"]
+        return bool(value)
 
     async def send_message(self) -> Data:
         """Send a message via Telegram Bot API.
@@ -256,10 +260,10 @@ class DFXTelegramMessageComponent(Component):
             if self.parse_mode:
                 request_data["parse_mode"] = self.parse_mode
 
-            if self._parse_boolean(self.disable_web_page_preview):
+            if self.disable_web_page_preview:
                 request_data["disable_web_page_preview"] = True
 
-            if self._parse_boolean(self.disable_notification):
+            if self.disable_notification:
                 request_data["disable_notification"] = True
 
             # Log the operation
@@ -340,3 +344,7 @@ class DFXTelegramMessageComponent(Component):
     def build(self):
         """Return the main send_message function."""
         return self.send_message
+
+
+# Alias for backward compatibility with client expectations
+DFXTelegramComponent = DFXTelegramMessageComponent

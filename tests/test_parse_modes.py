@@ -226,3 +226,29 @@ class TestParseModes:
         # Test validation passes
         validation = component._validate_inputs()
         assert validation["valid"]
+
+    def test_dfxtelegram_component_alias(self):
+        """Test that DFXTelegramComponent alias works correctly."""
+        from dfx.social.telegram.telegram_message import DFXTelegramComponent
+
+        # Test creating component with alias name
+        component = DFXTelegramComponent(
+            bot_token="test_token",
+            chat_id="test_chat",
+            message_text="Test via alias",
+            parse_mode="HTML",
+            disable_preview=True,
+            silent=False
+        )
+
+        # Verify field mapping works with alias
+        assert component.bot_token == "test_token"
+        assert component.chat_id == "test_chat"
+        assert component.text == "Test via alias"
+        assert component.parse_mode == "HTML"
+        assert component.disable_web_page_preview is True
+        assert component.disable_notification is False
+
+        # Test validation passes
+        validation = component._validate_inputs()
+        assert validation["valid"]

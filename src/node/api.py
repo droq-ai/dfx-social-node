@@ -31,6 +31,117 @@ _nats_client = None
 _node_config = None
 
 
+def log_json(level: str, message: str, data: dict, extra_data: dict = None):
+    """Log structured JSON data."""
+    log_entry = {
+        "timestamp": datetime.utcnow().isoformat() + "Z",
+        "level": level.upper(),
+        "message": message,
+        "data": data
+    }
+
+    if extra_data:
+        log_entry["extra"] = extra_data
+
+    logger.info(json.dumps(log_entry, separators=(',', ':')))
+    print(f"[JSON-LOG] {json.dumps(log_entry, separators=(',', ':'))}")
+
+
+def log_request_data(request: 'ExecutionRequest'):
+    """Log incoming request data in JSON format."""
+    request_data = {
+        "request_id": request.message_id,
+        "component": {
+            "class": request.component_state.component_class,
+            "module": request.component_state.component_module,
+            "has_code": bool(request.component_state.component_code),
+            "code_length": len(request.component_state.component_code or ""),
+            "component_id": request.component_state.component_id,
+            "display_name": request.component_state.display_name,
+            "stream_topic": request.component_state.stream_topic
+        },
+        "execution": {
+            "method_name": request.method_name,
+            "is_async": request.is_async,
+            "timeout": request.timeout
+        },
+        "parameters": sanitize_sensitive_data(request.component_state.parameters),
+        "input_values": sanitize_sensitive_data(request.component_state.input_values),
+        "config": sanitize_sensitive_data(request.component_state.config)
+    }
+
+    log_json("INFO", "Incoming execute request", request_data)
+
+
+def log_response_data(request: 'ExecutionRequest', response: 'ExecutionResponse', execution_time: float):
+    """Log response data in JSON format."""
+    response_data = {
+        "request_id": request.message_id,
+        "execution_time_ms": round(execution_time * 1000, 2),
+        "success": response.success,
+        "result_type": response.result_type,
+        "error": response.error,
+        "response_message_id": response.message_id,
+        "result_summary": get_result_summary(response.result) if response.result else None
+    }
+
+    extra_data = {
+        "component_class": request.component_state.component_class,
+        "method_name": request.method_name
+    }
+
+    log_json("INFO", "Execute request completed", response_data, extra_data)
+
+
+def sanitize_sensitive_data(data: dict) -> dict:
+    """Sanitize sensitive data like tokens and passwords for logging."""
+    if not data:
+        return data
+
+    sensitive_keys = ['bot_token', 'token', 'password', 'api_key', 'secret', 'key']
+    sanitized = data.copy()
+
+    for key, value in sanitized.items():
+        if key.lower() in sensitive_keys and isinstance(value, str):
+            # Show first few and last few characters of tokens
+            if len(value) > 10:
+                sanitized[key] = f"{value[:4]}...{value[-4:]}"
+            else:
+                sanitized[key] = "***"
+
+    return sanitized
+
+
+def get_result_summary(result: 'Any') -> dict:
+    """Get a summary of the result for logging."""
+    try:
+        if hasattr(result, 'data') and isinstance(result.data, dict):
+            data = result.data
+            return {
+                "success": data.get('success'),
+                "message": data.get('message'),
+                "operation": data.get('operation'),
+                "has_api_response": 'api_response' in data,
+                "data_keys": list(data.keys()) if data else []
+            }
+        elif isinstance(result, dict):
+            return {
+                "keys": list(result.keys()),
+                "success": result.get('success'),
+                "message": result.get('message', 'operation')
+            }
+        else:
+            return {
+                "type": type(result).__name__,
+                "string_preview": str(result)[:100] + "..." if len(str(result)) > 100 else str(result)
+            }
+    except Exception:
+        return {
+            "type": type(result).__name__,
+            "preview": "Unable to summarize result"
+        }
+
+
 def load_node_config():
     """Load node configuration from node.json."""
     global _node_config
@@ -247,29 +358,8 @@ async def execute_component(request: ExecutionRequest) -> ExecutionResponse:
     start_time = time.time()
 
     try:
-        # Comprehensive payload logging
-        stream_topic_value = request.component_state.stream_topic
-        log_msg = (
-            f"Received execution request: "
-            f"class={request.component_state.component_class}, "
-            f"module={request.component_state.component_module}, "
-            f"code_length={len(request.component_state.component_code or '') if request.component_state.component_code else 0}, "
-            f"stream_topic={stream_topic_value}"
-        )
-        logger.info(log_msg)
-        print(f"[EXECUTOR] {log_msg}")
-
-        # Log detailed payload information
-        logger.info(f"[PAYLOAD] message_id: {request.message_id}")
-        logger.info(f"[PAYLOAD] method_name: {request.method_name}")
-        logger.info(f"[PAYLOAD] is_async: {request.is_async}")
-        logger.info(f"[PAYLOAD] timeout: {request.timeout}")
-        logger.info(f"[PAYLOAD] parameters: {request.component_state.parameters}")
-        logger.info(f"[PAYLOAD] input_values: {request.component_state.input_values}")
-        logger.info(f"[PAYLOAD] config: {request.component_state.config}")
-        print(f"[PAYLOAD] Full request - message_id: {request.message_id}, method: {request.method_name}, is_async: {request.is_async}")
-        print(f"[PAYLOAD] Parameters: {request.component_state.parameters}")
-        print(f"[PAYLOAD] Input values: {request.component_state.input_values}")
+        # Log incoming request data in structured JSON format
+        log_request_data(request)
 
         # Load component class
         try:
@@ -283,7 +373,9 @@ async def execute_component(request: ExecutionRequest) -> ExecutionResponse:
             execution_time = time.time() - start_time
             error_msg = f"Failed to load component class: {str(e)}"
             logger.error(error_msg, exc_info=True)
-            return ExecutionResponse(
+
+            # Log component loading error response
+            response = ExecutionResponse(
                 result=None,
                 success=False,
                 result_type="ValueError",
@@ -291,6 +383,8 @@ async def execute_component(request: ExecutionRequest) -> ExecutionResponse:
                 error=error_msg,
                 message_id=request.message_id,
             )
+            log_response_data(request, response, execution_time)
+            return response
 
         # Instantiate component with parameters
         component_params = request.component_state.parameters.copy()
@@ -310,7 +404,9 @@ async def execute_component(request: ExecutionRequest) -> ExecutionResponse:
             execution_time = time.time() - start_time
             error_msg = f"Method {request.method_name} not found on component {request.component_state.component_class}"
             logger.error(error_msg)
-            return ExecutionResponse(
+
+            # Log method not found error response
+            response = ExecutionResponse(
                 result=None,
                 success=False,
                 result_type="AttributeError",
@@ -318,6 +414,8 @@ async def execute_component(request: ExecutionRequest) -> ExecutionResponse:
                 error=error_msg,
                 message_id=request.message_id,
             )
+            log_response_data(request, response, execution_time)
+            return response
 
         method = getattr(component, request.method_name)
 
@@ -399,19 +497,24 @@ async def execute_component(request: ExecutionRequest) -> ExecutionResponse:
                 logger.warning(f"[NATS] ❌ Failed to publish to NATS (non-critical): {e}", exc_info=True)
                 print(f"[NATS] ❌ Failed to publish to NATS (non-critical): {e}")
 
-        return ExecutionResponse(
+        # Log successful response
+        response = ExecutionResponse(
             result=serialized_result,
             success=True,
             result_type=type(result).__name__,
             execution_time=execution_time,
             message_id=message_id,
         )
+        log_response_data(request, response, execution_time)
+        return response
 
     except asyncio.TimeoutError:
         execution_time = time.time() - start_time
         error_msg = f"Execution timed out after {request.timeout}s"
         logger.error(error_msg)
-        return ExecutionResponse(
+
+        # Log timeout response
+        response = ExecutionResponse(
             result=None,
             success=False,
             result_type="TimeoutError",
@@ -419,6 +522,8 @@ async def execute_component(request: ExecutionRequest) -> ExecutionResponse:
             error=error_msg,
             message_id=request.message_id,
         )
+        log_response_data(request, response, execution_time)
+        return response
 
     except HTTPException:
         raise
@@ -427,7 +532,9 @@ async def execute_component(request: ExecutionRequest) -> ExecutionResponse:
         execution_time = time.time() - start_time
         error_msg = f"Execution failed: {type(e).__name__}: {str(e)}"
         logger.error(error_msg, exc_info=True)
-        return ExecutionResponse(
+
+        # Log error response
+        response = ExecutionResponse(
             result=None,
             success=False,
             result_type=type(e).__name__,
@@ -435,6 +542,8 @@ async def execute_component(request: ExecutionRequest) -> ExecutionResponse:
             error=error_msg,
             message_id=request.message_id,
         )
+        log_response_data(request, response, execution_time)
+        return response
 
 
 # Note: Telegram-specific endpoints have been removed in favor of the standardized /api/v1/execute endpoint

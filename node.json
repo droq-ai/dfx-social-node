@@ -13,7 +13,7 @@
   "source_code_location": "https://github.com/droq-ai/dfx-social-node-py",
   "components": {
     "DFXTelegramComponent": {
-      "path": "dfx.social.component.telegram",
+      "path": "dfx.social.telegram.telegram_message",
       "description": "Alias for DFXTelegramMessageComponent for backward compatibility with applications expecting DFXTelegramComponent.",
       "author": "Droq Team"
     }
