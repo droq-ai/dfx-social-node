@@ -184,7 +184,7 @@ class DFXTelegramMessageComponent(Component):
                     mapped_kwargs[bool_field] = bool(val)
 
         # Parse mode handling - convert "None" to empty string
-        if 'parse_mode' in mapped_kwargs and mapped_kwargs['parse_mode'] == 'None':
+        if 'parse_mode' in mapped_kwargs and mapped_kwargs['parse_mode'] == 'Text':
             mapped_kwargs['parse_mode'] = ''
 
         super().__init__(**mapped_kwargs)
