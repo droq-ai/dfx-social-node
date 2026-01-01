@@ -242,13 +242,7 @@ class DFXTelegramMessageComponent(Component):
                 error_message = "Validation failed: " + "; ".join(validation["errors"])
                 self.status = error_message
                 self.log(error_message)
-                return Data(
-                    data={
-                        "success": False,
-                        "error": error_message,
-                        "operation": "send_message"
-                    }
-                )
+                raise ValueError(error_message)
 
             # Prepare request data
             request_data = {
@@ -305,41 +299,19 @@ class DFXTelegramMessageComponent(Component):
             error_message = f"Telegram API error: {e.message}"
             self.status = error_message
             self.log(error_message)
-            return Data(
-                data={
-                    "success": False,
-                    "error": error_message,
-                    "error_code": e.error_code,
-                    "error_type": "api_error",
-                    "operation": "send_message"
-                }
-            )
+            raise ValueError(error_message) from e
 
         except TelegramHTTPError as e:
             error_message = f"HTTP error: {e.message}"
             self.status = error_message
             self.log(error_message)
-            return Data(
-                data={
-                    "success": False,
-                    "error": error_message,
-                    "error_type": "http_error",
-                    "operation": "send_message"
-                }
-            )
+            raise ValueError(error_message) from e
 
         except Exception as e:
             error_message = f"Unexpected error: {str(e)}"
             self.status = error_message
             self.log(error_message)
-            return Data(
-                data={
-                    "success": False,
-                    "error": error_message,
-                    "error_type": "unexpected_error",
-                    "operation": "send_message"
-                }
-            )
+            raise ValueError(error_message) from e
 
     def build(self):
         """Return the main send_message function."""
