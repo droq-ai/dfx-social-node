@@ -1,20 +1,20 @@
 {
   "version": "0.1.0",
-  "node_id": "dfx-base-node-template-py",
-  "name": "Droq Base Node Template",
-  "description": "A Python boilerplate template for creating new DFX nodes.",
+  "node_id": "dfx-social-executor-node",
+  "name": "DFX Social Executor Node",
+  "description": "A DFX social node with Telegram Bot API integration for message sending and bot management. Provides components for sending text messages with formatting options, chat management, and bot information retrieval.",
   "author": "Droq Team",
-  "api_url": "http://localhost:8003",
-  "created_at": "2025-11-17T18:44:00Z",
+  "api_url": "http://localhost:8007",
+  "created_at": "2025-11-28T14:30:00Z",
   "ip_address": "127.0.0.1",
   "status": "active",
-  "docker_image": "droqai/dfx-base-node-template:latest",
+  "docker_image": "droqai/dfx-social-node:latest",
   "deployment_location": "local",
-  "source_code_location": "https://github.com/droq-ai/dfx-base-node-template-py",
+  "source_code_location": "https://github.com/droq-ai/dfx-social-node-py",
   "components": {
-    "DFXExampleComponent": {
-      "path": "dfx.components.example",
-      "description": "This is a sample droq component",
+    "DFXTelegramComponent": {
+      "path": "dfx.social.telegram.telegram_message",
+      "description": "Alias for DFXTelegramMessageComponent for backward compatibility with applications expecting DFXTelegramComponent.",
       "author": "Droq Team"
     }
   }

@@ -1,14 +1,14 @@
 [project]
-name = "droq-node-template"
+name = "dfx-social-executor-node"
 version = "0.1.0"
-description = "A Python template for building Droq nodes"
+description = "DFX Social Executor Node for handling Telegram messaging"
 readme = "README.md"
 requires-python = ">=3.11"
 license = {text = "Apache-2.0"}
 authors = [
     {name = "Droq Team", email = "team@droq.ai"}
 ]
-keywords = ["droq", "node", "template", "workflow"]
+keywords = ["dfx", "social", "executor", "telegram", "messaging"]
 
 # Minimal dependencies - add what you need for your node
 # Common options (uncomment and adjust versions as needed):
@@ -22,6 +22,11 @@ keywords = ["droq", "node", "template", "workflow"]
 dependencies = [
     "nats-py>=2.3.0",      # For NATS messaging and JetStream
     "aiohttp>=3.8.0",      # For HTTP/API calls
+    "pydantic>=2.0.0",     # For configuration validation
+    "fastapi>=0.104.0",    # For HTTP API server
+    "uvicorn[standard]>=0.24.0",  # For FastAPI server
+    "httpx>=0.25.0",       # For HTTP client requests
+    "python-dotenv>=1.0.0", # For environment variables
 ]
 
 [project.optional-dependencies]
@@ -31,17 +36,18 @@ dev = [
     "black>=23.0.0",
     "ruff>=0.1.0",
     "mypy>=1.0.0",
+    "python-dotenv>=1.0.0",
 ]
 
 [project.scripts]
-node = "node.main:main"
+dfx-social-executor-node = "node.main:main"
 
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [tool.hatchling.build.targets.wheel]
-packages = ["src/node"]
+packages = ["src/node", "dfx"]
 
 [tool.black]
 line-length = 100
