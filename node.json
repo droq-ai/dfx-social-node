@@ -2,7 +2,7 @@
   "version": "0.1.0",
   "node_id": "dfx-social-executor-node",
   "name": "DFX Social Executor Node",
-  "description": "A DFX social node with Telegram Bot API integration for message sending and bot management. Provides components for sending text messages with formatting options, chat management, and bot information retrieval.",
+  "description": "A DFX social node with Telegram Bot API, X (Twitter), and Reddit integration. Provides components for sending messages via Telegram, fetching posts from X/Twitter, and fetching posts from Reddit subreddits and user profiles.",
   "author": "Droq Team",
   "api_url": "http://localhost:8007",
   "created_at": "2025-11-28T14:30:00Z",
@@ -15,6 +15,16 @@
     "DFXTelegramComponent": {
       "path": "dfx.social.telegram.telegram_message",
       "description": "Alias for DFXTelegramMessageComponent for backward compatibility with applications expecting DFXTelegramComponent.",
+      "author": "Droq Team"
+    },
+    "DFXTwitterPostsComponent": {
+      "path": "dfx.social.x.twitter_posts",
+      "description": "Component for fetching posts from X (Twitter) API. Supports fetching user tweets with various fields and expansions.",
+      "author": "Droq Team"
+    },
+    "DFXRedditPostsComponent": {
+      "path": "dfx.social.reddit.reddit_posts",
+      "description": "Component for fetching posts from Reddit API. Supports fetching posts from subreddits and user profiles.",
       "author": "Droq Team"
     }
   }
